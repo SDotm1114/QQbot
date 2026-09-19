@@ -15,10 +15,10 @@ import json
 import logging
 from typing import Any, Awaitable, Callable
 
-from qqbot.actions import ActionResult
-from qqbot.config import Settings
+from radio.actions import ActionResult
+from radio.config import Settings
 
-logger = logging.getLogger("qqbot.llm")
+logger = logging.getLogger("radio.llm")
 
 ToolHandler = Callable[[str, dict], Awaitable[ActionResult]]
 
@@ -99,6 +99,22 @@ TOOLS = [
     {
         "type": "function",
         "function": {
+            "name": "my_user_id",
+            "description": "查看用户自己的用户ID。",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "my_profile",
+            "description": "查看自己的账号信息（时间、用户ID、身份、点歌次数）。",
+            "parameters": {"type": "object", "properties": {}},
+        },
+    },
+    {
+        "type": "function",
+        "function": {
             "name": "add_remark",
             "description": "为我的某首点歌设置或清除备注。",
             "parameters": {
@@ -127,7 +143,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string", "description": "被封禁的用户 QQ"}
+                    "user_id": {"type": "string", "description": "被封禁的用户ID（带平台前缀，如 onebot:123）"}
                 },
                 "required": ["user_id"],
             },
@@ -141,7 +157,7 @@ TOOLS = [
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "user_id": {"type": "string", "description": "被解封的用户 QQ"}
+                    "user_id": {"type": "string", "description": "被解封的用户ID（带平台前缀，如 onebot:123）"}
                 },
                 "required": ["user_id"],
             },
@@ -311,7 +327,7 @@ class LLMService:
 
     async def announce(self, name: str, artist: str, date_cn: str) -> str:
         """歌曲被选用的通知文案（LLM 生成，失败用兜底）。"""
-        fallback = f"你点的《{name} - {artist}》在{date_cn}被选中了！记得去听哦～"
+        fallback = f"你点的《{name} - {artist}》在{date_cn}被选中了！"
         if not self.enabled:
             return fallback
         messages = [

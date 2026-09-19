@@ -6,12 +6,12 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 
-from qqbot.util import compact
+from radio.util import compact
 
 _POINT_RE = re.compile(r"^点歌(?:\s*(\d+))?$")
 _REMARK_RE = re.compile(r"^备注(?:\s*(\d+)(?:\s+([\s\S]*))?)?$")
-_BAN_RE = re.compile(r"^封禁\s*(\d+)$")
-_UNBAN_RE = re.compile(r"^解封\s*(\d+)$")
+_BAN_RE = re.compile(r"^封禁\s*([A-Za-z0-9_:-]+)$")
+_UNBAN_RE = re.compile(r"^解封\s*([A-Za-z0-9_:-]+)$")
 _BAN_SONG_RE = re.compile(r"^(?:禁歌|禁唱)\s*(.+)$")
 _UNBAN_SONG_RE = re.compile(r"^(?:解禁歌|解禁唱|允许歌)\s*(.+)$")
 
@@ -38,6 +38,8 @@ class CommandKind(str, Enum):
     ORDER = "order"
     MY_SONGS = "my_songs"
     REMAINING = "remaining"
+    MY_ID = "my_id"
+    PROFILE = "profile"
     REMARK = "remark"
     HELP = "help"
     BAN_USER = "ban_user"
@@ -103,15 +105,15 @@ def parse_command(text: str) -> Command | None:
             return Command(CommandKind.REMARK, (None, None))
         return Command(CommandKind.REMARK, (int(m.group(1)), (m.group(2) or "").strip()))
 
+    if c in ("封禁列表", "解封列表"):
+        return Command(CommandKind.BAN_LIST)
+
     m = _BAN_RE.match(t)
     if m:
         return Command(CommandKind.BAN_USER, (m.group(1),))
     m = _UNBAN_RE.match(t)
     if m:
         return Command(CommandKind.UNBAN_USER, (m.group(1),))
-
-    if c in ("封禁列表", "解封列表"):
-        return Command(CommandKind.BAN_LIST)
 
     m = _BAN_SONG_RE.match(t)
     if m:
@@ -133,6 +135,12 @@ def parse_command(text: str) -> Command | None:
 
     if c in ("剩余次数", "查询剩余点歌次数", "剩余点歌次数"):
         return Command(CommandKind.REMAINING)
+
+    if c.lower() in ("id", "我的id", "用户id", "我的用户id", "查询id"):
+        return Command(CommandKind.MY_ID)
+
+    if c in ("我的信息", "个人信息", "我的资料", "我的状态"):
+        return Command(CommandKind.PROFILE)
 
     if c.startswith("帮助") or c.startswith("菜单"):
         return Command(CommandKind.HELP)

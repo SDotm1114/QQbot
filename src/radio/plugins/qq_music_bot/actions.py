@@ -1,6 +1,6 @@
 """动作层：所有功能点的唯一实现，确定性指令与 LLM 工具共用。
 
-每个动作返回 :class:`qqbot.actions.ActionResult`（文本 + 可选图片），
+每个动作返回 :class:`radio.actions.ActionResult`（文本 + 可选图片），
 由插件负责发送；LLM 工具循环复用同一批动作，业务逻辑零重复。
 """
 
@@ -11,10 +11,11 @@ from typing import Callable
 
 from nonebot import logger
 
-from qqbot.actions import ActionResult
-from qqbot.render import SOURCE_NAMES, render_page, render_records
-from qqbot.runtime import notices, permissions, requests, search, settings, songs, state, users
-from qqbot.services import MusicSearchError, fetch_cover
+from radio.actions import ActionResult
+from radio.render import SOURCE_NAMES, render_page, render_records
+from radio.runtime import notices, permissions, requests, search, settings, songs, state, users
+from radio.services import MusicSearchError, fetch_cover
+from radio.util import beijing_now
 
 from . import texts
 
@@ -140,6 +141,22 @@ async def action_remaining(uid: str) -> ActionResult:
     return ActionResult(texts.format_remaining(used, limit, period))
 
 
+async def action_my_id(uid: str) -> ActionResult:
+    return ActionResult(f"你的用户ID：{uid}")
+
+
+async def action_profile(uid: str) -> ActionResult:
+    if permissions.is_super_admin(uid):
+        role = "超级管理员"
+    elif permissions.is_admin(uid):
+        role = "管理员"
+    else:
+        role = "用户"
+    period, limit = permissions.role_limit(uid)
+    used = await requests.count(uid, period)
+    return ActionResult(texts.format_profile(beijing_now(), uid, role, used, limit, period))
+
+
 async def action_remark(uid: str, song_id: int | None, content: str = "") -> ActionResult:
     if not song_id:
         return ActionResult(
@@ -243,6 +260,8 @@ TOOL_HANDLERS = {
     "order_song": _handler(action_order, "index", casts={"index": int}),
     "my_song_list": _handler(action_my_songs),
     "remaining_quota": _handler(action_remaining),
+    "my_user_id": _handler(action_my_id),
+    "my_profile": _handler(action_profile),
     "add_remark": _handler(action_remark, "song_id", "content", casts={"song_id": int}),
     "help_menu": _handler(action_help_menu),
     "ban_user": _handler(action_ban_user, "user_id", casts={"user_id": str}),
